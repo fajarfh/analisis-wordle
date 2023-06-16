@@ -189,9 +189,9 @@ persen_plot = function(daftar_kata, judul, subjudul, warna){
     paste0(deparse(substitute(daftar_kata))
            ,"_bebas.png"),
     plot_huruf(persentase_huruf, judul, subjudul, warna),
-    width = 6.5,
-    height = 3.25,
-    dpi = 1200
+    width = 7,
+    height = 5,
+    dpi = 180
   )
   
   # Agar tampilan data pada tabel lebih mudah dibaca
@@ -284,9 +284,9 @@ persen_plot_posisi = function(daftar_kata, judul, subjudul, warna){
       plot_huruf(letter_list, paste0(
         judul," pada Posisi ke-",i), 
         paste0("Dari daftar kata ",subjudul), warna),
-      width = 6.5,
-      height = 3.25,
-      dpi = 1200
+      width = 7,
+      height = 5,
+      dpi = 180
     )
     
     # Agar tampilan data pada tabel lebih mudah dibaca
@@ -646,6 +646,39 @@ tebakan_cara2B = function(daftar_kata,
   return(list_baru)
 }
 
+# Fungsi untuk menghilangkan huruf yang sama
+# dalam satu kata
+huruf_unik = function(kata_eval){
+  
+  # Memastikan kata yang dievaluasi merupakan data frame
+  # agar bisa diolah lebih lanjut
+  if(!is.data.frame(kata_eval)){
+    kata_eval = data.frame(kata = c(kata_eval))  
+  }
+  
+  # Memecah kata evaluasi menjadi huruf per posisi
+  huruf_kata = pecah_kata(kata_eval)
+  
+  # Variabel menyimpan kata hasil
+  kata_hasil = ""
+  
+  for (i in 1:ncol(huruf_kata)) {
+    
+    # Mengecek apakah suatu huruf
+    # pernah ada di kata tersebut atau belum
+    cek_ada = grepl(huruf_kata[i],kata_hasil)
+    
+    # Jika belum ada, tambahkan huruf
+    # pada kata_hasil
+    if(!cek_ada){
+      kata_hasil = paste0(kata_hasil,huruf_kata[i])
+    }
+  }
+  
+  # Mengirimkan kata hasil
+  return(kata_hasil)
+}
+
 # Fungsi untuk menggambar diagram venn dari kata
 # "bebas" -> huruf benar terlepas posisinya
 # "posisi" -> huruf benar di posisi yang benar
@@ -656,9 +689,6 @@ gambar_venn = function(kata_eval, asal_data, mode = "bebas"){
   if(!is.data.frame(kata_eval)){
     kata_eval = data.frame(kata = c(kata_eval))  
   }
-  
-  # Memecah kata evaluasi menjadi huruf per posisi
-  huruf_kata = pecah_kata(kata_eval)
 
   # Menyiapkan asal_data sesuai mode
   # Pada mode posisi, asal_data perlu dipecah 
@@ -676,10 +706,16 @@ gambar_venn = function(kata_eval, asal_data, mode = "bebas"){
     # Agar penamaan variable tetap sama
     daftar_kata = asal_data
     
+    # Memastikan tidak ada huruf yang sama
+    kata_eval = huruf_unik(kata_eval)
+    
     # Menyimpan data jumlah huruf per kata
-    colnum = str_length(daftar_kata[1,1])
+    colnum = str_length(kata_eval)
     
   }
+  
+  # Memecah kata evaluasi menjadi huruf per posisi
+  huruf_kata = pecah_kata(kata_eval)
   
   # Pengecekan jika huruf lebih dari 7
   if(colnum > 7){
@@ -688,9 +724,18 @@ gambar_venn = function(kata_eval, asal_data, mode = "bebas"){
   
   # Untuk mengecek apakah jumlah huruf kata_eval
   # sama dengan huruf-huruf di daftar kata sumber
-  if(ncol(huruf_kata)!= colnum){
-    return("Jumlah huruf input kata 
-           beda dengan daftar kata.")
+  if(str_length(asal_data[1,1])!= colnum){
+    
+    # Pada mode bebas, beri peringatan jika
+    # huruf unik jumlahnya berbeda
+    if(mode == "bebas"){
+      cat("\nPeringatan dari gambar_venn():")
+      cat("\nJumlah huruf unik beda dengan daftar\n")
+    }else{
+      return("Jumlah huruf input kata 
+           beda dengan daftar kata.")      
+    }
+    
   }
   
   # Menyiapkan string yang akan dieksekusi 
@@ -779,9 +824,6 @@ prob_all = function(kata_eval, asal_data, mode = "bebas"){
     kata_eval = data.frame(kata = c(kata_eval))  
   }
   
-  # Memecah kata evaluasi menjadi huruf per posisi
-  huruf_kata = pecah_kata(kata_eval)
-  
   # Menyiapkan asal_data sesuai mode
   # Pada mode posisi, asal_data perlu dipecah 
   # agar bisa di-filter sesuai posisi.
@@ -794,23 +836,43 @@ prob_all = function(kata_eval, asal_data, mode = "bebas"){
     colnum = ncol(daftar_kata)
     
     # Indeks untuk membantu penyaringan
-    huruf_kata_idx = c(1:ncol(huruf_kata))
+    huruf_kata_idx = c(1:str_length(kata_eval))
     
   }else if(mode ==  "bebas"){
     
     # Agar penamaan variable tetap sama
     daftar_kata = asal_data
     
-    # Menyimpan data jumlah huruf per kata
-    colnum = str_length(daftar_kata[1,1])
+    # Memastikan tidak ada huruf yang sama
+    kata_eval = huruf_unik(kata_eval)
     
+    # Menyimpan data jumlah huruf per kata
+    colnum = str_length(kata_eval)
+    
+  }
+  
+  # Memecah kata evaluasi menjadi huruf per posisi
+  huruf_kata = pecah_kata(kata_eval)
+  
+  # Pengecekan jika huruf lebih dari 7
+  if(colnum > 7){
+    return("Jumlah huruf terlalu banyak.")
   }
   
   # Untuk mengecek apakah jumlah huruf kata_eval
   # sama dengan huruf-huruf di daftar kata sumber
-  if(ncol(huruf_kata)!= colnum){
-    return("Jumlah huruf input kata 
-           beda dengan daftar kata.")
+  if(str_length(asal_data[1,1])!= colnum){
+    
+    # Pada mode bebas, beri peringatan jika
+    # huruf unik jumlahnya berbeda
+    if(mode == "bebas"){
+      cat("\nPeringatan dari prob_all():")
+      cat("\nJumlah huruf unik beda dengan daftar\n")
+    }else{
+      return("Jumlah huruf input kata 
+           beda dengan daftar kata.")      
+    }
+    
   }
   
   # Menyimpan nilai jumlah data pada daftar kata
@@ -831,7 +893,7 @@ prob_all = function(kata_eval, asal_data, mode = "bebas"){
   
   # Looping untuk menghitung variasi probabilitas
   for(i in 1:length(huruf_kata)) {
-    
+
     # Membuat kombinasi huruf dalam kata
     # yang bisa dibentuk dengan huruf
     # sebanyak i
@@ -879,7 +941,6 @@ prob_all = function(kata_eval, asal_data, mode = "bebas"){
                              grepl(huruf, 
                                    unlist(list_baru[1])))
           
-
         }else if (mode ==  "posisi"){
           
           # Pada mode posisi, penyaringan dilakukan 
@@ -1056,10 +1117,15 @@ nilai_akhir = function(daftar_kata,
     grup_2A_all, grup_2A_ex,
     grup_2B_all, grup_2B_ex))
   
+  # Menampilkan daftar kata yang akan dievaluasi
+  print(kata_eval)
+  
   # Menyiapkan variabel untuk menampung
   # data akhir
   tabel_hasil = data.frame()
   
+  # Menyimpan data panjang kata dalam daftar
+  colnum = str_length(sumber_data[1,1])
   
   # Mengevaluasi semua kata tebakan 
   # menggunakan dua mode penghitungan 
@@ -1078,9 +1144,9 @@ nilai_akhir = function(daftar_kata,
              "_bebas.png"),
       gambar_venn(kata_eval[i,1], 
                 daftar_kata, "bebas"),
-      width = 3.25,
-      height = 3.25,
-      dpi = 1200
+      width = 3.5,
+      height = 3.5,
+      dpi = 240
     )
     
     # Menghitung semua probabilitas kata
@@ -1101,10 +1167,26 @@ nilai_akhir = function(daftar_kata,
       t() %>% # transpose
       data.frame() # agar dapat diolah lebih lanjut
     
+    # Jika huruf unik lebih sedikit dari
+    # panjang kata dalam daftar, tambahkan
+    # kolom agar sesuai dengan 
+    # jumlah kolom yang seharusnya
+    # Ini hanya diperlukan saat evaluasi
+    # nilai mode bebas
+    if(ncol(prob_bebas)!=colnum){
+      
+      idx_awal = ncol(prob_bebas)+1
+      
+      for(j in idx_awal:colnum){
+        
+        prob_bebas[1,idx_awal] = 0
+          
+      }
+    }
+    
     # Memberikan prefiks pada nama kolom
     names(prob_bebas) = paste0("beb_",
                                1:ncol(prob_bebas))
-    
     
     # Selanjutnya melakukan hal yang sama
     # pada posisi huruf tepat
@@ -1114,9 +1196,9 @@ nilai_akhir = function(daftar_kata,
              "_posisi.png"),
       gambar_venn(kata_eval[i,1], 
                   daftar_kata, "posisi"),
-      width = 3.25,
-      height = 3.25,
-      dpi = 1200
+      width = 3.5,
+      height = 3.5,
+      dpi = 240
     )
     
     prob_posisi = prob_all(kata_eval[i,1], 
